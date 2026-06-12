@@ -3,6 +3,9 @@ import { GraduationCap, BookOpen, Users, Sparkles, ArrowRight, CheckCircle2 } fr
 import { SiteLayout } from "@/components/SiteLayout";
 import hero from "@/assets/hero-students.jpg";
 import pedagogia from "@/assets/curso-pedagogia.jpg";
+import administracao from "@/assets/curso-administracao.png";
+import farmacia from "@/assets/curso-farmacia.png";
+import estetica from "@/assets/curso-estetica.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -112,35 +115,75 @@ function Index() {
             </Link>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <article className="group overflow-hidden rounded-2xl bg-card shadow-card transition hover:-translate-y-1 hover:shadow-brand">
-              <div className="aspect-[4/3] overflow-hidden">
-                <img src={pedagogia} alt="Curso de Pedagogia" width={1200} height={900} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+            <article className="group overflow-hidden rounded-2xl bg-card shadow-card transition hover:-translate-y-1 hover:shadow-brand flex flex-col justify-between">
+              <div>
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img src={pedagogia} alt="Curso de Pedagogia" width={1200} height={900} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                </div>
+                <div className="p-6">
+                  <span className="rounded-full bg-brand-light/15 px-3 py-1 text-xs font-semibold text-brand">Graduação</span>
+                  <h3 className="mt-3 text-xl font-bold text-foreground">Pedagogia</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Forme-se educador(a) com base sólida em didática, psicologia da educação e práticas pedagógicas.
+                  </p>
+                  <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Modalidade EaD</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Duração de 4 anos</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Estágio supervisionado</li>
+                  </ul>
+                </div>
               </div>
-              <div className="p-6">
-                <span className="rounded-full bg-brand-light/15 px-3 py-1 text-xs font-semibold text-brand">Graduação</span>
-                <h3 className="mt-3 text-xl font-bold text-foreground">Pedagogia</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Forme-se educador(a) com base sólida em didática, psicologia da educação e práticas pedagógicas.
-                </p>
-                <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Modalidade EaD</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Duração de 4 anos</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> Estágio supervisionado</li>
-                </ul>
-                <Link to="/cursos" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:gap-2">
-                  Saiba mais <ArrowRight className="h-4 w-4" />
+              <div className="px-6 pb-6 pt-2">
+                <Link to="/cadastro" search={{ curso: "Pedagogia" }} className="w-full inline-flex justify-center items-center gap-2 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-brand hover:opacity-90 transition">
+                  Inscreva-se <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </article>
 
-            {[1, 2].map((i) => (
-              <article key={i} className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/50 p-10 text-center">
-                <div className="rounded-full bg-secondary p-4">
-                  <Sparkles className="h-6 w-6 text-brand-light" />
+            {[
+              {
+                nome: "Técnico em Administração",
+                imagem: administracao,
+                desc: "Desenvolva habilidades de liderança, finanças, marketing e gestão organizacional para o mercado.",
+                detalhes: ["Fila de espera aberta", "Aulas teóricas e práticas", "Suporte ao estudante"],
+              },
+              {
+                nome: "Técnico em Farmácia",
+                imagem: farmacia,
+                desc: "Capacite-se para atuar em farmácias, laboratórios, manipulação de medicamentos e atendimento.",
+                detalhes: ["Fila de espera aberta", "Foco em biossegurança", "Estágio prático assistido"],
+              },
+              {
+                nome: "Técnico em Estética",
+                imagem: estetica,
+                desc: "Aprenda técnicas de estética facial, corporal, cosmetologia e práticas inovadoras de beleza.",
+                detalhes: ["Fila de espera aberta", "Técnicas modernas", "Foco em empreendedorismo"],
+              },
+            ].map((curso) => (
+              <article key={curso.nome} className="group overflow-hidden rounded-2xl bg-card shadow-card transition hover:-translate-y-1 hover:shadow-brand flex flex-col justify-between">
+                <div>
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img src={curso.imagem} alt={curso.nome} width={1200} height={900} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="p-6">
+                    <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-500">Curso Técnico</span>
+                    <h3 className="mt-3 text-xl font-bold text-foreground">{curso.nome}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {curso.desc}
+                    </p>
+                    <ul className="mt-4 space-y-1.5 text-sm text-foreground/80">
+                      {curso.detalhes.map((detalhe) => (
+                        <li key={detalhe} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-brand-light" /> {detalhe}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-foreground">Em breve</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Novos cursos estão chegando à grade do IES.</p>
+                <div className="px-6 pb-6 pt-2">
+                  <Link to="/cadastro" search={{ curso: curso.nome }} className="w-full inline-flex justify-center items-center gap-2 rounded-full border border-brand text-brand bg-transparent hover:bg-brand hover:text-white px-5 py-2.5 text-sm font-semibold transition cursor-pointer">
+                    Faça sua Pré-Matrícula <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

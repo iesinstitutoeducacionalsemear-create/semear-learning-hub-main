@@ -2,8 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useState } from "react";
 import { GraduationCap, User, Mail, Lock, IdCard, Phone, CheckCircle2 } from "lucide-react";
+import { store } from "@/lib/ies-store";
+import { z } from "zod";
+
+const cadastroSearchSchema = z.object({
+  curso: z.string().optional(),
+});
 
 export const Route = createFileRoute("/cadastro")({
+  validateSearch: (search) => cadastroSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Cadastro de Aluno — IES" },
@@ -15,32 +22,76 @@ export const Route = createFileRoute("/cadastro")({
   component: Cadastro,
 });
 
-// Mockup — em produção virá do banco de dados (tabela "turmas")
-const TURMAS_MOCK = [
-  { id: "ped-2024-2", curso: "Pedagogia", nome: "Pedagogia 2024.2", ano: 2024, semestre: 2 },
-  { id: "ped-2025-1", curso: "Pedagogia", nome: "Pedagogia 2025.1", ano: 2025, semestre: 1 },
-  { id: "ped-2026-1", curso: "Pedagogia", nome: "Pedagogia 2026.1", ano: 2026, semestre: 1 },
+const CURSOS_TECNICOS = [
+  "Técnico em Administração",
+  "Técnico em Farmácia",
+  "Técnico em Estética",
 ];
 
 function Cadastro() {
   const navigate = useNavigate();
-  const [turma, setTurma] = useState<string>("");
+  const search = Route.useSearch();
+  const preselected = search.curso;
+
+  const turmas = store.getTurmas();
+
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+
+  const [selectedChoice, setSelectedChoice] = useState<string>(() => {
+    if (preselected) {
+      if (CURSOS_TECNICOS.includes(preselected)) {
+        return preselected;
+      }
+      const t = turmas.find((x) => x.id === preselected || x.nome === preselected || x.curso === preselected);
+      if (t) return t.id;
+    }
+    return "";
+  });
+
   const [sucesso, setSucesso] = useState(false);
+  const [sucessoMsg, setSucessoMsg] = useState("");
+  const [sucessoSub, setSucessoSub] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!turma) return;
-    const turmaSel = TURMAS_MOCK.find((t) => t.id === turma)!;
-    // Mockup: persiste em localStorage só para demonstrar o fluxo do dashboard
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "ies_aluno_demo",
-        JSON.stringify({ nome, curso: turmaSel.curso, turmaId: turmaSel.id, turmaNome: turmaSel.nome }),
-      );
+    if (!selectedChoice) return;
+
+    const isTecnico = CURSOS_TECNICOS.includes(selectedChoice);
+    if (isTecnico) {
+      store.addPreMatricula({
+        id: `pre-${Date.now()}`,
+        nome,
+        email,
+        telefone,
+        curso: selectedChoice,
+        dataInscricao: new Date().toISOString(),
+        status: "Pré-Matriculado",
+      });
+      setSucessoMsg("Pré-matrícula realizada!");
+      setSucessoSub(`Você foi cadastrado com sucesso na lista de espera do curso ${selectedChoice}. Entraremos em contato assim que novas turmas forem abertas.`);
+      setSucesso(true);
+      setTimeout(() => navigate({ to: "/" }), 3000);
+    } else {
+      const turmaSel = turmas.find((t) => t.id === selectedChoice)!;
+      if (typeof window !== "undefined") {
+        store.setAluno({
+          nome,
+          email,
+          curso: turmaSel.curso,
+          turmaId: turmaSel.id,
+          turmaNome: turmaSel.nome,
+        });
+      }
+      setSucessoMsg("Matrícula realizada!");
+      setSucessoSub("Redirecionando para seu painel de aluno...");
+      setSucesso(true);
+      setTimeout(() => navigate({ to: "/aluno/dashboard" }), 1500);
     }
-    setSucesso(true);
-    setTimeout(() => navigate({ to: "/aluno/dashboard" }), 1200);
   }
 
   return (
@@ -48,7 +99,7 @@ function Cadastro() {
       <section className="bg-gradient-hero py-14 text-white">
         <div className="mx-auto max-w-4xl px-4 text-center md:px-6">
           <h1 className="text-3xl font-extrabold md:text-4xl">Cadastro do Aluno</h1>
-          <p className="mt-3 text-white/85">Preencha seus dados e escolha sua turma para concluir a matrícula.</p>
+          <p className="mt-3 text-white/85">Preencha seus dados e escolha seu curso ou turma de interesse para concluir.</p>
         </div>
       </section>
 
@@ -58,8 +109,8 @@ function Cadastro() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-light/15 text-brand">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <h2 className="mt-4 text-2xl font-bold text-foreground">Matrícula realizada!</h2>
-            <p className="mt-2 text-muted-foreground">Redirecionando para seu painel…</p>
+            <h2 className="mt-4 text-2xl font-bold text-foreground">{sucessoMsg}</h2>
+            <p className="mt-2 text-muted-foreground">{sucessoSub}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-card md:p-8">
@@ -68,48 +119,94 @@ function Cadastro() {
                 <input required value={nome} onChange={(e) => setNome(e.target.value)} className={inputCls} placeholder="Seu nome completo" />
               </Field>
               <Field icon={IdCard} label="CPF" required>
-                <input required className={inputCls} placeholder="000.000.000-00" />
+                <input required value={cpf} onChange={(e) => setCpf(e.target.value)} className={inputCls} placeholder="000.000.000-00" />
               </Field>
               <Field icon={Mail} label="E-mail" required>
-                <input required type="email" className={inputCls} placeholder="voce@email.com" />
+                <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="voce@email.com" />
               </Field>
               <Field icon={Phone} label="Telefone / WhatsApp" required>
-                <input required className={inputCls} placeholder="(00) 00000-0000" />
+                <input required value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputCls} placeholder="(00) 00000-0000" />
               </Field>
               <Field icon={Lock} label="Senha" required>
-                <input required type="password" className={inputCls} placeholder="Mínimo 8 caracteres" />
+                <input required type="password" value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} placeholder="Mínimo 8 caracteres" />
               </Field>
               <Field icon={Lock} label="Confirmar senha" required>
-                <input required type="password" className={inputCls} placeholder="Repita a senha" />
+                <input required type="password" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} className={inputCls} placeholder="Repita a senha" />
               </Field>
             </div>
 
             <div>
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                 <GraduationCap className="h-4 w-4 text-brand" />
-                Turma <span className="text-destructive">*</span>
+                Selecione o Curso ou Turma de interesse <span className="text-destructive">*</span>
               </label>
-              <div className="grid gap-3 md:grid-cols-3">
-                {TURMAS_MOCK.map((t) => {
-                  const ativo = turma === t.id;
-                  return (
-                    <label
-                      key={t.id}
-                      className={`cursor-pointer rounded-xl border-2 p-4 text-sm transition ${
-                        ativo ? "border-brand bg-brand/5 shadow-brand/30" : "border-border bg-background hover:border-brand-light"
-                      }`}
-                    >
-                      <input type="radio" name="turma" value={t.id} checked={ativo} onChange={() => setTurma(t.id)} className="sr-only" />
-                      <div className="text-xs font-semibold uppercase text-brand-light">{t.curso}</div>
-                      <div className="mt-1 text-base font-bold text-foreground">{t.nome}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {t.ano} · {t.semestre}º semestre
-                      </div>
-                    </label>
-                  );
-                })}
+
+              {/* Cursos Técnicos (Pré-Matrícula) */}
+              <div className="mb-6">
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-light">Cursos Técnicos (Pré-Matrícula / Lista de Espera)</h3>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {CURSOS_TECNICOS.map((curso) => {
+                    const ativo = selectedChoice === curso;
+                    return (
+                      <label
+                        key={curso}
+                        className={`cursor-pointer rounded-xl border-2 p-4 text-sm transition block ${
+                          ativo ? "border-brand bg-brand/5 shadow-brand/30" : "border-border bg-background hover:border-brand-light"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="curso_escolha"
+                          value={curso}
+                          checked={ativo}
+                          onChange={() => setSelectedChoice(curso)}
+                          className="sr-only"
+                        />
+                        <div className="text-xs font-semibold uppercase text-brand-light">Técnico</div>
+                        <div className="mt-1 text-base font-bold text-foreground">{curso}</div>
+                        <div className="mt-1 text-xs text-muted-foreground font-medium text-amber-500">
+                          Sem turma aberta (Fila de espera)
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-              {!turma && <p className="mt-2 text-xs text-muted-foreground">Selecione a turma em que deseja se matricular.</p>}
+
+              {/* Graduação (Turmas Abertas) */}
+              <div>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-brand-light">Graduação (Turmas Ativas)</h3>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {turmas
+                    .filter((t) => t.curso === "Pedagogia")
+                    .map((t) => {
+                      const ativo = selectedChoice === t.id;
+                      return (
+                        <label
+                          key={t.id}
+                          className={`cursor-pointer rounded-xl border-2 p-4 text-sm transition block ${
+                            ativo ? "border-brand bg-brand/5 shadow-brand/30" : "border-border bg-background hover:border-brand-light"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="curso_escolha"
+                            value={t.id}
+                            checked={ativo}
+                            onChange={() => setSelectedChoice(t.id)}
+                            className="sr-only"
+                          />
+                          <div className="text-xs font-semibold uppercase text-brand-light">{t.curso}</div>
+                          <div className="mt-1 text-base font-bold text-foreground">{t.nome}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {t.ano} · {t.semestre}º semestre
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+              {!selectedChoice && <p className="mt-2 text-xs text-muted-foreground">Selecione uma opção para continuar.</p>}
             </div>
 
             <div className="flex flex-col items-center justify-between gap-3 border-t border-border pt-6 md:flex-row">
@@ -121,10 +218,10 @@ function Cadastro() {
               </p>
               <button
                 type="submit"
-                disabled={!turma || !nome}
+                disabled={!selectedChoice || !nome}
                 className="rounded-full bg-gradient-brand px-8 py-3 text-sm font-semibold text-brand-foreground shadow-brand transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Concluir matrícula
+                {CURSOS_TECNICOS.includes(selectedChoice) ? "Solicitar Pré-Matrícula" : "Concluir matrícula"}
               </button>
             </div>
           </form>

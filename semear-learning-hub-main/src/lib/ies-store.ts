@@ -7,7 +7,49 @@ export type Turma = {
   ano: number;
   semestre: number;
   disciplinas?: string[];
+  alunos?: { nome: string; email: string }[];
 };
+
+export type PreMatricula = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  curso: string;
+  dataInscricao: string; // ISO date
+  status: "Pré-Matriculado" | "Matriculado";
+  turmaId?: string;
+};
+
+export const PRE_MATRICULAS_PADRAO: PreMatricula[] = [
+  {
+    id: "pre-1",
+    nome: "Lucas Oliveira",
+    email: "lucas.oliveira@email.com",
+    telefone: "(11) 98765-4321",
+    curso: "Técnico em Administração",
+    dataInscricao: "2026-06-10T14:30:00.000Z",
+    status: "Pré-Matriculado",
+  },
+  {
+    id: "pre-2",
+    nome: "Camila Rodrigues",
+    email: "camila.rodrigues@email.com",
+    telefone: "(21) 99888-7766",
+    curso: "Técnico em Farmácia",
+    dataInscricao: "2026-06-11T09:15:00.000Z",
+    status: "Pré-Matriculado",
+  },
+  {
+    id: "pre-3",
+    nome: "Beatriz Costa",
+    email: "beatriz.costa@email.com",
+    telefone: "(31) 97777-8888",
+    curso: "Técnico em Estética",
+    dataInscricao: "2026-06-12T08:00:00.000Z",
+    status: "Pré-Matriculado",
+  },
+];
 
 export type AlunoSession = {
   nome: string;
@@ -53,9 +95,40 @@ export type Entrega = {
 };
 
 export const TURMAS_PADRAO: Turma[] = [
-  { id: "ped-2024-2", curso: "Pedagogia", nome: "Pedagogia 2024.2", ano: 2024, semestre: 2, disciplinas: ["Didática Geral", "Psicologia da Educação", "Estágio Supervisionado II"] },
-  { id: "ped-2025-1", curso: "Pedagogia", nome: "Pedagogia 2025.1", ano: 2025, semestre: 1, disciplinas: ["Fundamentos da Educação", "Sociologia da Educação", "Língua Portuguesa"] },
-  { id: "ped-2026-1", curso: "Pedagogia", nome: "Pedagogia 2026.1", ano: 2026, semestre: 1, disciplinas: ["Introdução à Pedagogia", "Filosofia da Educação", "Metodologia Científica"] },
+  {
+    id: "ped-2024-2",
+    curso: "Pedagogia",
+    nome: "Pedagogia 2024.2",
+    ano: 2024,
+    semestre: 2,
+    disciplinas: ["Didática Geral", "Psicologia da Educação", "Estágio Supervisionado II"],
+    alunos: [
+      { nome: "Carlos Souza", email: "carlos@email.com" },
+      { nome: "Joana Pereira", email: "joana@email.com" },
+    ],
+  },
+  {
+    id: "ped-2025-1",
+    curso: "Pedagogia",
+    nome: "Pedagogia 2025.1",
+    ano: 2025,
+    semestre: 1,
+    disciplinas: ["Fundamentos da Educação", "Sociologia da Educação", "Língua Portuguesa"],
+    alunos: [
+      { nome: "Mariana Alves", email: "mariana@email.com" },
+    ],
+  },
+  {
+    id: "ped-2026-1",
+    curso: "Pedagogia",
+    nome: "Pedagogia 2026.1",
+    ano: 2026,
+    semestre: 1,
+    disciplinas: ["Introdução à Pedagogia", "Filosofia da Educação", "Metodologia Científica"],
+    alunos: [
+      { nome: "Maria Silva", email: "maria@email.com" },
+    ],
+  },
 ];
 
 const KEYS = {
@@ -64,6 +137,7 @@ const KEYS = {
   entregas: "ies_entregas",
   aluno: "ies_aluno_demo",
   professor: "ies_professor_demo",
+  preMatriculas: "ies_pre_matriculas",
 } as const;
 
 function isBrowser() {
@@ -92,6 +166,19 @@ export const store = {
   },
   saveTurmas(t: Turma[]) {
     write(KEYS.turmas, t);
+  },
+
+  getPreMatriculas(): PreMatricula[] {
+    const list = read<PreMatricula[]>(KEYS.preMatriculas, []);
+    return list.length ? list : PRE_MATRICULAS_PADRAO;
+  },
+  savePreMatriculas(list: PreMatricula[]) {
+    write(KEYS.preMatriculas, list);
+  },
+  addPreMatricula(item: PreMatricula) {
+    const list = store.getPreMatriculas();
+    list.push(item);
+    store.savePreMatriculas(list);
   },
 
   getAtividades(): Atividade[] {
