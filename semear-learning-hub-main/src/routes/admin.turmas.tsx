@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin/turmas")({
   head: () => ({
     meta: [
       { title: "Administração de Turmas — IES" },
-      { name: "description", content: "Gerencie cursos, turmas e pré-matrículas do Instituto Educacional Semear." },
+      { name: "description", content: "Gerencie cursos, turmas, pré-matrículas e alunos do Instituto Educacional Semear." },
     ],
   }),
   component: AdminTurmas,
@@ -19,13 +19,19 @@ const CURSOS = ["Pedagogia", "Técnico em Administração", "Técnico em Farmác
 function AdminTurmas() {
   const [turmas, setTurmas] = useState<Turma[]>(() => store.getTurmas());
   const [preMatriculas, setPreMatriculas] = useState<PreMatricula[]>(() => store.getPreMatriculas());
-  const [activeTab, setActiveTab] = useState<"turmas" | "pre">("turmas");
+  const [activeTab, setActiveTab] = useState<"turmas" | "pre" | "alunos">("turmas");
   
   const [editing, setEditing] = useState<Turma | null>(null);
   const [transfer, setTransfer] = useState<{ aluno: string; from: string } | null>(null);
   
   const [selectedPreIds, setSelectedPreIds] = useState<string[]>([]);
   const [showVincularModal, setShowVincularModal] = useState(false);
+
+  // Filtros da aba Alunos
+  const [filtroCurso, setFiltroCurso] = useState("");
+  const [filtroTurma, setFiltroTurma] = useState("");
+  const [filtroPeriodo, setFiltroPeriodo] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("");
 
   function salvar(t: Turma) {
     const updated = (() => {
@@ -95,10 +101,8 @@ function AdminTurmas() {
     const targetTurma = turmas.find((t) => t.id === turmaId);
     if (!targetTurma) return;
 
-    // Filter students selected
     const selectedStudents = preMatriculas.filter((p) => selectedPreIds.includes(p.id));
 
-    // Update preMatriculas status
     const updatedPre = preMatriculas.map((p) => {
       if (selectedPreIds.includes(p.id)) {
         return { ...p, status: "Matriculado" as const, turmaId };
@@ -106,10 +110,13 @@ function AdminTurmas() {
       return p;
     });
 
-    // Add to target turma
     const updatedTurmas = turmas.map((t) => {
       if (t.id === turmaId) {
-        const novosAlunos = selectedStudents.map((s) => ({ nome: s.nome, email: s.email }));
+        const novosAlunos = selectedStudents.map((s) => ({
+          nome: s.nome,
+          email: s.email,
+          periodo: s.periodo || "1º Período"
+        }));
         return { ...t, alunos: [...(t.alunos || []), ...novosAlunos] };
       }
       return t;
@@ -124,6 +131,42 @@ function AdminTurmas() {
     setSelectedPreIds([]);
     setShowVincularModal(false);
   }
+
+  // Obter todos os alunos matriculados de todas as turmas
+  const alunosMatriculados = turmas.flatMap((t) =>
+    (t.alunos || []).map((a) => ({
+      id: `${t.id}-${a.email}`,
+      nome: a.nome,
+      email: a.email,
+      curso: t.curso,
+      turmaNome: t.nome,
+      periodo: a.periodo || "1º Período",
+      status: "Matriculado",
+    }))
+  );
+
+  // Obter pré-matrículas pendentes
+  const alunosPreMatriculados = preMatriculas
+    .filter((p) => p.status === "Pré-Matriculado")
+    .map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      email: p.email,
+      curso: p.curso,
+      turmaNome: "— (Fila de Espera)",
+      periodo: p.periodo || "1º Período",
+      status: "Pré-Matriculado",
+    }));
+
+  const todosAlunos = [...alunosMatriculados, ...alunosPreMatriculados];
+
+  const alunosFiltrados = todosAlunos.filter((a) => {
+    if (filtroCurso && a.curso !== filtroCurso) return false;
+    if (filtroTurma && (filtroTurma === "fila" ? a.status !== "Pré-Matriculado" : a.turmaNome !== filtroTurma)) return false;
+    if (filtroPeriodo && a.periodo !== filtroPeriodo) return false;
+    if (filtroStatus && a.status !== filtroStatus) return false;
+    return true;
+  });
 
   return (
     <SiteLayout>
@@ -141,7 +184,7 @@ function AdminTurmas() {
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab("turmas")}
-              className={`pb-4 text-sm font-bold transition border-b-2 -mb-[2px] ${
+              className={`pb-4 text-sm font-bold transition border-b-2 -mb-[2px] cursor-pointer ${
                 activeTab === "turmas"
                   ? "border-brand text-brand"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -151,7 +194,7 @@ function AdminTurmas() {
             </button>
             <button
               onClick={() => setActiveTab("pre")}
-              className={`pb-4 text-sm font-bold transition border-b-2 -mb-[2px] flex items-center gap-2 ${
+              className={`pb-4 text-sm font-bold transition border-b-2 -mb-[2px] flex items-center gap-2 cursor-pointer ${
                 activeTab === "pre"
                   ? "border-brand text-brand"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -164,10 +207,23 @@ function AdminTurmas() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("alunos")}
+              className={`pb-4 text-sm font-bold transition border-b-2 -mb-[2px] flex items-center gap-2 cursor-pointer ${
+                activeTab === "alunos"
+                  ? "border-brand text-brand"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Alunos
+              <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs text-brand">
+                {todosAlunos.length}
+              </span>
+            </button>
           </div>
         </div>
 
-        {activeTab === "turmas" ? (
+        {activeTab === "turmas" && (
           <div>
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -239,7 +295,7 @@ function AdminTurmas() {
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
-                        </tr>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -247,7 +303,9 @@ function AdminTurmas() {
               </table>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === "pre" && (
           <div>
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -284,6 +342,7 @@ function AdminTurmas() {
                     </th>
                     <th className="px-4 py-3 text-left">Candidato</th>
                     <th className="px-4 py-3 text-left">Curso Escolhido</th>
+                    <th className="px-4 py-3 text-left">Período</th>
                     <th className="px-4 py-3 text-left">Telefone</th>
                     <th className="px-4 py-3 text-left">E-mail</th>
                     <th className="px-4 py-3 text-left">Data da Inscrição</th>
@@ -293,7 +352,7 @@ function AdminTurmas() {
                 <tbody>
                   {preMatriculas.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                         Nenhum candidato pré-matriculado encontrado.
                       </td>
                     </tr>
@@ -314,6 +373,7 @@ function AdminTurmas() {
                         </td>
                         <td className="px-4 py-3 font-semibold text-foreground">{p.nome}</td>
                         <td className="px-4 py-3 text-muted-foreground font-medium">{p.curso}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{p.periodo || "1º Período"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{p.telefone}</td>
                         <td className="px-4 py-3 text-muted-foreground">{p.email}</td>
                         <td className="px-4 py-3 text-muted-foreground flex items-center gap-1.5">
@@ -329,6 +389,121 @@ function AdminTurmas() {
                             }`}
                           >
                             {p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "alunos" && (
+          <div>
+            {/* Filtros */}
+            <div className="mb-6 grid gap-4 md:grid-cols-4 rounded-xl border border-border bg-secondary/20 p-4">
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground uppercase">Curso</span>
+                <select
+                  value={filtroCurso}
+                  onChange={(e) => setFiltroCurso(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-card p-2 text-sm outline-none"
+                >
+                  <option value="">Todos os cursos</option>
+                  {CURSOS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground uppercase">Turma</span>
+                <select
+                  value={filtroTurma}
+                  onChange={(e) => setFiltroTurma(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-card p-2 text-sm outline-none"
+                >
+                  <option value="">Todas as turmas</option>
+                  <option value="fila">Sem Turma / Fila de Espera</option>
+                  {turmas.map((t) => (
+                    <option key={t.id} value={t.nome}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground uppercase">Período</span>
+                <select
+                  value={filtroPeriodo}
+                  onChange={(e) => setFiltroPeriodo(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-card p-2 text-sm outline-none"
+                >
+                  <option value="">Todos os períodos</option>
+                  {["1º Período", "2º Período", "3º Período", "4º Período", "5º Período", "6º Período", "7º Período", "8º Período"].map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground uppercase">Status Acadêmico</span>
+                <select
+                  value={filtroStatus}
+                  onChange={(e) => setFiltroStatus(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-card p-2 text-sm outline-none"
+                >
+                  <option value="">Todos os status</option>
+                  <option value="Pré-Matriculado">Pré-Matriculado</option>
+                  <option value="Matriculado">Matriculado</option>
+                </select>
+              </label>
+            </div>
+
+            {/* Tabela de Alunos Filtrados */}
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Aluno</th>
+                    <th className="px-4 py-3 text-left">E-mail</th>
+                    <th className="px-4 py-3 text-left">Curso</th>
+                    <th className="px-4 py-3 text-left">Turma</th>
+                    <th className="px-4 py-3 text-left">Período Atual</th>
+                    <th className="px-4 py-3 text-left">Status Acadêmico</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alunosFiltrados.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                        Nenhum aluno encontrado com os filtros selecionados.
+                      </td>
+                    </tr>
+                  ) : (
+                    alunosFiltrados.map((a) => (
+                      <tr key={a.id} className="border-t border-border hover:bg-secondary/10 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-foreground">{a.nome}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{a.email}</td>
+                        <td className="px-4 py-3 text-muted-foreground font-medium">{a.curso}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{a.turmaNome}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{a.periodo}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                              a.status === "Pré-Matriculado"
+                                ? "bg-amber-500/10 text-amber-500"
+                                : "bg-emerald-500/10 text-emerald-500"
+                            }`}
+                          >
+                            {a.status}
                           </span>
                         </td>
                       </tr>
@@ -401,7 +576,7 @@ function EditModal({
             <select
               value={t.curso}
               onChange={(e) => set("curso", e.target.value)}
-              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
             >
               {CURSOS.map((c) => (
                 <option key={c} value={c}>
@@ -416,7 +591,7 @@ function EditModal({
               value={t.nome}
               onChange={(e) => set("nome", e.target.value)}
               placeholder="Ex.: Técnico em Administração 2026.1"
-              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
             />
           </label>
           <label className="block">
@@ -425,7 +600,7 @@ function EditModal({
               type="number"
               value={t.ano}
               onChange={(e) => set("ano", Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
             />
           </label>
           <label className="block">
@@ -433,7 +608,7 @@ function EditModal({
             <select
               value={t.semestre}
               onChange={(e) => set("semestre", Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
             >
               <option value={1}>1º semestre</option>
               <option value={2}>2º semestre</option>
@@ -468,6 +643,7 @@ function EditModal({
                     <div>
                       <div className="font-medium text-foreground">{a.nome}</div>
                       <div className="text-xs text-muted-foreground">{a.email}</div>
+                      {a.periodo && <div className="text-[11px] text-brand font-semibold">{a.periodo}</div>}
                     </div>
                     <button
                       onClick={() => onTransferAluno(a.nome)}
@@ -577,7 +753,7 @@ function TransferModal({
           <select
             value={destino}
             onChange={(e) => setDestino(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
           >
             <option value="">Selecione…</option>
             {turmas.map((t) => (
@@ -636,7 +812,7 @@ function VincularModal({
           <select
             value={destino}
             onChange={(e) => setDestino(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-input bg-background p-2 text-sm outline-none"
           >
             <option value="">Selecione…</option>
             {turmas.map((t) => (

@@ -19,6 +19,7 @@ export type PreMatricula = {
   dataInscricao: string; // ISO date
   status: "Pré-Matriculado" | "Matriculado";
   turmaId?: string;
+  periodo?: string;
 };
 
 export const PRE_MATRICULAS_PADRAO: PreMatricula[] = [
@@ -30,6 +31,7 @@ export const PRE_MATRICULAS_PADRAO: PreMatricula[] = [
     curso: "Técnico em Administração",
     dataInscricao: "2026-06-10T14:30:00.000Z",
     status: "Pré-Matriculado",
+    periodo: "1º Período",
   },
   {
     id: "pre-2",
@@ -39,6 +41,7 @@ export const PRE_MATRICULAS_PADRAO: PreMatricula[] = [
     curso: "Técnico em Farmácia",
     dataInscricao: "2026-06-11T09:15:00.000Z",
     status: "Pré-Matriculado",
+    periodo: "2º Período",
   },
   {
     id: "pre-3",
@@ -48,6 +51,7 @@ export const PRE_MATRICULAS_PADRAO: PreMatricula[] = [
     curso: "Técnico em Estética",
     dataInscricao: "2026-06-12T08:00:00.000Z",
     status: "Pré-Matriculado",
+    periodo: "1º Período",
   },
 ];
 
@@ -57,6 +61,7 @@ export type AlunoSession = {
   curso: string;
   turmaId: string;
   turmaNome: string;
+  periodo?: string;
 };
 
 export type ProfessorSession = {
@@ -244,6 +249,7 @@ export const store = {
       curso: "Pedagogia",
       turmaId: "ped-2026-1",
       turmaNome: "Pedagogia 2026.1",
+      periodo: "1º Período",
     };
   },
 };

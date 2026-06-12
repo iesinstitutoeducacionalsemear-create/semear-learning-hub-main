@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GraduationCap, User, Mail, Lock, IdCard, Phone, CheckCircle2 } from "lucide-react";
 import { store } from "@/lib/ies-store";
 import { z } from "zod";
@@ -53,6 +53,23 @@ function Cadastro() {
     return "";
   });
 
+  const [periodo, setPeriodo] = useState<string>("1º Período");
+
+  const isChoiceTecnico = CURSOS_TECNICOS.includes(selectedChoice);
+  const isPedagogia = selectedChoice && !isChoiceTecnico;
+
+  const periodosDisponiveis = isPedagogia
+    ? ["1º Período", "2º Período", "3º Período", "4º Período", "5º Período", "6º Período", "7º Período", "8º Período"]
+    : isChoiceTecnico
+    ? ["1º Período", "2º Período", "3º Período", "4º Período"]
+    : [];
+
+  useEffect(() => {
+    if (periodosDisponiveis.length > 0 && !periodosDisponiveis.includes(periodo)) {
+      setPeriodo("1º Período");
+    }
+  }, [selectedChoice, periodosDisponiveis, periodo]);
+
   const [sucesso, setSucesso] = useState(false);
   const [sucessoMsg, setSucessoMsg] = useState("");
   const [sucessoSub, setSucessoSub] = useState("");
@@ -71,9 +88,10 @@ function Cadastro() {
         curso: selectedChoice,
         dataInscricao: new Date().toISOString(),
         status: "Pré-Matriculado",
+        periodo,
       });
       setSucessoMsg("Pré-matrícula realizada!");
-      setSucessoSub(`Você foi cadastrado com sucesso na lista de espera do curso ${selectedChoice}. Entraremos em contato assim que novas turmas forem abertas.`);
+      setSucessoSub(`Você foi cadastrado com sucesso na lista de espera do curso ${selectedChoice} no ${periodo}. Entraremos em contato assim que novas turmas forem abertas.`);
       setSucesso(true);
       setTimeout(() => navigate({ to: "/" }), 3000);
     } else {
@@ -85,6 +103,7 @@ function Cadastro() {
           curso: turmaSel.curso,
           turmaId: turmaSel.id,
           turmaNome: turmaSel.nome,
+          periodo,
         });
       }
       setSucessoMsg("Matrícula realizada!");
@@ -207,6 +226,27 @@ function Cadastro() {
                 </div>
               </div>
               {!selectedChoice && <p className="mt-2 text-xs text-muted-foreground">Selecione uma opção para continuar.</p>}
+
+              {selectedChoice && periodosDisponiveis.length > 0 && (
+                <div className="mt-6">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <GraduationCap className="h-4 w-4 text-brand" />
+                    Período Atual <span className="text-destructive">*</span>
+                  </label>
+                  <select
+                    required
+                    value={periodo}
+                    onChange={(e) => setPeriodo(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {periodosDisponiveis.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-center justify-between gap-3 border-t border-border pt-6 md:flex-row">
