@@ -53,17 +53,13 @@ function Index() {
               </Link>
             </div>
 
-            <div className="mt-10 grid max-w-md grid-cols-3 gap-6 text-center">
-              {[
-                { n: "+500", l: "Alunos" },
-                { n: "100%", l: "Online" },
-                { n: "+10", l: "Anos" },
-              ].map((s) => (
-                <div key={s.l}>
-                  <div className="text-2xl font-bold text-brand-light">{s.n}</div>
-                  <div className="text-xs text-white/70">{s.l}</div>
-                </div>
-              ))}
+            <div className="mt-10 max-w-xl">
+              <div className="flex items-start gap-4 rounded-2xl border border-white/20 bg-white/10 px-6 py-5 backdrop-blur-sm">
+                <div className="mt-1 h-full w-1 shrink-0 self-stretch rounded-full bg-brand-light" />
+                <p className="text-sm leading-relaxed text-white/90 italic">
+                  "Há 3 anos trazendo ensino de qualidade, formando profissionais preparados para transformar vidas através da educação."
+                </p>
+              </div>
             </div>
           </div>
 
