@@ -6,8 +6,9 @@ export type Turma = {
   nome: string;
   ano: number;
   semestre: number;
+  professores?: string[];
   disciplinas?: string[];
-  alunos?: { nome: string; email: string }[];
+  alunos?: { nome: string; email: string; periodo?: string }[];
 };
 
 export type PreMatricula = {
